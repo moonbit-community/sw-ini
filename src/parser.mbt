@@ -165,7 +165,9 @@ fn IniParseState::handle_section_char(
       let section_name = self.ctx.buffer.to_string().trim_space()
       let section_name = self.lower_if_needed(section_name)
       self.ctx.current_section = Section::NamedSection(section_name)
-      self.ctx.sections.set(self.ctx.current_section, @hashmap.new())
+      if not(self.ctx.sections.contains(self.ctx.current_section)) {
+        self.ctx.sections.set(self.ctx.current_section, @hashmap.new())
+      }
       self.phase = Start
       self
     }
@@ -487,6 +489,24 @@ test "IniParseState::handle_section_char/unclosed_section" {
 }
 
 ///|
+test "IniParseState::handle_section_char/duplicate_section" {
+  let state = IniParseState::new()
+  let state = state.parse!(
+    #|[test]
+    #|key=foo
+    #|key2=value
+    #|
+    #|[test]
+    #|key=bar
+    #|
+    ,
+  )
+  let section = state.ctx.sections.get(Section::NamedSection("test")).unwrap()
+  inspect!(section.get("key"), content="Some(Value(\"bar\"))")
+  inspect!(section.get("key2"), content="Some(Value(\"value\"))")
+}
+
+///|
 test "IniParseState::handle_key_char/basic" {
   let state = IniParseState::new()
   let state = state.handle_key_char!('k')
@@ -534,6 +554,20 @@ test "IniParseState::handle_key_char/valueless_key" {
   inspect!(section.is_empty(), content="false")
   let value = section.unwrap().get("key")
   inspect!(value, content="Some(Value(\"\"))")
+}
+
+///|
+test "IniParseState::handle_key_char/comment_in_key" {
+  let state = IniParseState::new()
+  let state = state.handle_key_char!('k')
+  let state = state.handle_key_char!('e')
+  let state = state.handle_key_char!('y')
+  let state = state.handle_key_char!(';')
+  inspect!(state.phase, content="Start")
+  inspect!(
+    state.ctx.sections.get(Section::Global).unwrap().get("key").unwrap(),
+    content="Value(\"\")",
+  )
 }
 
 ///|
