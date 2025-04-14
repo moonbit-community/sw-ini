@@ -198,7 +198,7 @@ fn IniParseState::handle_key_char(
       self.ctx.key = key
       self
     }
-    '\n' => {
+    '\n' | ';' | '#' => {
       let key = self.ctx.buffer.to_string().trim_space()
       if not(key.is_empty()) {
         let key = self.lower_if_needed(key)
@@ -206,10 +206,6 @@ fn IniParseState::handle_key_char(
         self.ctx.buffer.reset()
         ignore(self.commit_value!())
       }
-      self.reset_line()
-    }
-    ';' | '#' => {
-      self.ctx.buffer.reset()
       self.reset_line()
     }
     _ if c.is_whitespace() =>
