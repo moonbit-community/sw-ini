@@ -1,0 +1,35 @@
+package "ShellWen/sw_ini"
+
+// Values
+fn parse(String, is_case_sensitive~ : Bool = ..) -> IniFile!IniParseError
+
+// Types and methods
+type IniFile
+impl IniFile {
+  get(Self, section~ : String = .., String) -> String?
+  get_bool(Self, section~ : String = .., String) -> Bool?
+  get_string(Self, section~ : String = .., String) -> String?
+  new(is_case_sensitive~ : Bool = ..) -> Self
+  set(Self, section~ : String = .., String, String) -> Unit
+}
+
+pub type! IniParseError {
+  UnexpectedEqualSign(line~ : Int, col~ : Int)
+  EmptySection(line~ : Int, col~ : Int)
+  UnclosedSection(line~ : Int, col~ : Int)
+  ValueWithoutSection(line~ : Int, col~ : Int)
+  QuoteMismatch(line~ : Int, col~ : Int)
+  QuoteNotClosed(line~ : Int, col~ : Int)
+}
+
+type IniParseState
+impl IniParseState {
+  finish(Self) -> IniFile!IniParseError
+  new(is_case_sensitive~ : Bool = ..) -> Self
+  parse(Self, String) -> Self!IniParseError
+}
+
+// Type aliases
+
+// Traits
+
