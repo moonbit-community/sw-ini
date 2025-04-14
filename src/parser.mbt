@@ -328,14 +328,7 @@ fn IniParseState::commit_value(
   if drop_last_one_space && value.rev_iter().nth(0).unwrap().is_whitespace() {
     value = value.substring(end=value.length() - 1)
   }
-  let section = self.ctx.sections.get(self.ctx.current_section)
-  if section.is_empty() {
-    raise IniParseError::ValueWithoutSection(
-      line=self.ctx.line,
-      col=self.ctx.col,
-    )
-  }
-  let section = section.unwrap()
+  let section = self.ctx.sections.get(self.ctx.current_section).unwrap()
   let key = self.ctx.key
   guard not(key.is_blank()) else {
     raise IniParseError::ValueWithoutSection(
