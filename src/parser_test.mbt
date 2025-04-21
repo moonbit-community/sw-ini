@@ -149,3 +149,69 @@ test "parse/error_quote_not_closed" {
   let input = "[section]\nkey=\"value"
   assert_true!(parse?(input) is Err(_))
 }
+
+///|
+test "parse/escape_basic" {
+  let input =
+    #|[esc]
+    #|key=\\ \' \" \b \t \r \n \; \# \= \:
+  let ini = parse!(input)
+  let expect = "\\ \' \" \b \t \r \n ; # = :"
+  inspect!(ini.get(section="esc", "key").unwrap(), content=expect)
+}
+
+///|
+test "parse/escape_hex_unicode" {
+  let input =
+    #|[hex]
+    #|key=abc\x4e2d\x6587def
+  let ini = parse!(input)
+  // \x4e2d = '中', \x6587 = '文'
+  inspect!(ini.get(section="hex", "key").unwrap(), content="abc中文def")
+}
+
+///|
+test "parse/escape_mixed" {
+  let input =
+    #|[mix]
+    #|key=\tTab\nNewline\x0021!
+  let ini = parse!(input)
+  inspect!(
+    ini.get(section="mix", "key").unwrap(),
+    content="\tTab\nNewline\u0021!",
+  )
+}
+
+///|
+test "parse/escape_in_quotes" {
+  let input = "[q]\nkey1='\\n'\nkey2=\"\\t\"\nkey3='\\x4e2d'\nkey4=\"\\x6587\""
+  let ini = parse!(input)
+  inspect!(ini.get(section="q", "key1"), content="Some(\"\\n\")")
+  inspect!(ini.get(section="q", "key2"), content="Some(\"\\t\")")
+  inspect!(ini.get(section="q", "key3"), content="Some(\"中\")")
+  inspect!(ini.get(section="q", "key4"), content="Some(\"文\")")
+}
+
+///|
+test "parse/escape_invalid_hex" {
+  let input = "[badhex]\nkey=abc\\x12gZ"
+  let ini = parse!(input)
+  // meet the non-hex character `g`, escape fails, output as-is
+  inspect!(ini.get(section="badhex", "key"), content="Some(\"abc\\\\x12gZ\")")
+}
+
+///|
+test "parse/escape_incomplete_hex" {
+  let input = "[incomplete]\nkey=abc\\x12"
+  let ini = parse!(input)
+  // less than 4 digits, output as-is
+  inspect!(ini.get(section="incomplete", "key"), content="Some(\"abc\\\\x12\")")
+}
+
+///|
+test "parse/escape_unknown" {
+  let input = "[unknown]\nkey=abc\\zdef"
+  let ini = parse!(input)
+  // unknown escape, z is output as-is
+  inspect!(ini.get(section="unknown", "key"), content="Some(\"abczdef\")")
+}

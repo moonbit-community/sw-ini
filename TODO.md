@@ -1,5 +1,5 @@
 - [x] Quoted values
 - [ ] Line continuation, aka. as multiple lines
-- [ ] Escape characters
+- [x] Escape characters
 - [ ] Section nesting support
 - [ ] Write INI file

@@ -35,10 +35,24 @@ priv enum ParsePhase {
 } derive(Show)
 
 ///|
+priv struct EscapeStateHex {
+  hex : StringBuilder
+  mut left : Int
+}
+
+///|
+priv enum EscapeState {
+  None
+  Escape
+  Hex(EscapeStateHex)
+}
+
+///|
 struct IniParseState {
   ctx : ParseContext
   mut phase : ParsePhase
   is_case_sensitive : Bool
+  mut escape_state : EscapeState
 }
 
 ///|
@@ -63,6 +77,7 @@ pub fn IniParseState::new(is_case_sensitive~ : Bool = false) -> IniParseState {
     },
     phase: ParsePhase::Start,
     is_case_sensitive,
+    escape_state: EscapeState::None,
   }
 }
 
@@ -230,6 +245,54 @@ fn IniParseState::handle_value_char(
   self : IniParseState,
   c : Char
 ) -> IniParseState!IniParseError {
+  match self.escape_state {
+    EscapeState::Hex(state) =>
+      if c.is_digit(16) {
+        state.hex.write_char(c)
+        state.left -= 1
+        if state.left == 0 {
+          // it must be 4 digits hex
+          let code = @strconv.parse_int?(state.hex.to_string(), base=16).unwrap()
+          self.ctx.buffer.write_char(Char::from_int(code))
+          self.escape_state = EscapeState::None
+        }
+        return self
+      } else {
+        self.ctx.buffer.write_string("\\x" + state.hex.to_string())
+        self.escape_state = EscapeState::None
+        // handle the current character
+      }
+    EscapeState::Escape => {
+      match c {
+        '\\' => self.ctx.buffer.write_char('\\')
+        '\'' => self.ctx.buffer.write_char('\'')
+        '"' => self.ctx.buffer.write_char('"')
+        '0' => self.ctx.buffer.write_char('\u0000')
+        'a' => self.ctx.buffer.write_char('\u0007')
+        'b' => self.ctx.buffer.write_char('\b')
+        't' => self.ctx.buffer.write_char('\t')
+        'r' => self.ctx.buffer.write_char('\r')
+        'n' => self.ctx.buffer.write_char('\n')
+        ';' => self.ctx.buffer.write_char(';')
+        '#' => self.ctx.buffer.write_char('#')
+        '=' => self.ctx.buffer.write_char('=')
+        ':' => self.ctx.buffer.write_char(':')
+        'x' => {
+          let hex = StringBuilder::new()
+          self.escape_state = EscapeState::Hex(EscapeStateHex::{ hex, left: 4 })
+          return self
+        }
+        _ => self.ctx.buffer.write_char(c)
+      }
+      self.escape_state = EscapeState::None
+      return self
+    }
+    EscapeState::None => ()
+  }
+  if c == '\\' {
+    self.escape_state = EscapeState::Escape
+    return self
+  }
   match c {
     '\n' => {
       guard self.phase is ReadingValue(ReadingValueState::None) else {
