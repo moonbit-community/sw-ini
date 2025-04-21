@@ -53,6 +53,7 @@ struct IniParseState {
   mut phase : ParsePhase
   is_case_sensitive : Bool
   mut escape_state : EscapeState
+  mut last_char_is_backslash : Bool // Track if last char is an unescaped backslash
 }
 
 ///|
@@ -78,6 +79,7 @@ pub fn IniParseState::new(is_case_sensitive~ : Bool = false) -> IniParseState {
     phase: ParsePhase::Start,
     is_case_sensitive,
     escape_state: EscapeState::None,
+    last_char_is_backslash: false,
   }
 }
 
@@ -255,11 +257,13 @@ fn IniParseState::handle_value_char(
           let code = @strconv.parse_int?(state.hex.to_string(), base=16).unwrap()
           self.ctx.buffer.write_char(Char::from_int(code))
           self.escape_state = EscapeState::None
+          self.last_char_is_backslash = false
         }
         return self
       } else {
         self.ctx.buffer.write_string("\\x" + state.hex.to_string())
         self.escape_state = EscapeState::None
+        self.last_char_is_backslash = false
         // handle the current character
       }
     EscapeState::Escape => {
@@ -280,17 +284,20 @@ fn IniParseState::handle_value_char(
         'x' => {
           let hex = StringBuilder::new()
           self.escape_state = EscapeState::Hex(EscapeStateHex::{ hex, left: 4 })
+          self.last_char_is_backslash = false
           return self
         }
         _ => self.ctx.buffer.write_char(c)
       }
       self.escape_state = EscapeState::None
+      self.last_char_is_backslash = false
       return self
     }
     EscapeState::None => ()
   }
   if c == '\\' {
     self.escape_state = EscapeState::Escape
+    self.last_char_is_backslash = not(self.last_char_is_backslash) // handle consecutive backslashes
     return self
   }
   match c {
@@ -301,7 +308,13 @@ fn IniParseState::handle_value_char(
           col=self.ctx.col,
         )
       }
+      if self.last_char_is_backslash {
+        // Remove the effect of the backslash, do not commit value, just continue
+        self.last_char_is_backslash = false
+        return self
+      }
       ignore(self.commit_value!())
+      self.last_char_is_backslash = false
       self.reset_line()
     }
     ';' | '#' => {
@@ -313,6 +326,7 @@ fn IniParseState::handle_value_char(
       }
       ignore(self.commit_value!(drop_last_one_space=true))
       self.phase = InComment
+      self.last_char_is_backslash = false
       self
     }
     '\'' => {
@@ -326,6 +340,7 @@ fn IniParseState::handle_value_char(
           ReadingValue(ReadingValueState::None)
         _ => self.phase
       }
+      self.last_char_is_backslash = false
       self
     }
     '"' => {
@@ -339,6 +354,7 @@ fn IniParseState::handle_value_char(
           ReadingValue(ReadingValueState::None)
         _ => self.phase
       }
+      self.last_char_is_backslash = false
       self
     }
     _ if c.is_whitespace() => {
@@ -353,10 +369,12 @@ fn IniParseState::handle_value_char(
           self.ctx.buffer.write_char(c)
         _ => ()
       }
+      self.last_char_is_backslash = false
       self
     }
     _ => {
       self.ctx.buffer.write_char(c)
+      self.last_char_is_backslash = false
       self
     }
   }

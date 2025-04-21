@@ -215,3 +215,63 @@ test "parse/escape_unknown" {
   // unknown escape, z is output as-is
   inspect!(ini.get(section="unknown", "key"), content="Some(\"abczdef\")")
 }
+
+///|
+test "parse/line_continuation_basic" {
+  let input =
+    #|[multi]
+    #|key=foo\
+    #|bar\
+    #|baz
+  let ini = parse!(input)
+  // Should join lines as "foo\nbar\nbaz"
+  inspect!(ini.get(section="multi", "key"), content="Some(\"foo\\nbar\\nbaz\")")
+}
+
+///|
+test "parse/line_continuation_with_spaces" {
+  let input =
+    #|[multi]
+    #|key=foo \
+    #| bar \
+    #| baz
+  let ini = parse!(input)
+  // Spaces before backslash are preserved
+  inspect!(
+    ini.get(section="multi", "key"),
+    content="Some(\"foo \\n bar \\n baz\")",
+  )
+}
+
+///|
+test "parse/line_continuation_and_comment" {
+  let input =
+    #|[multi]
+    #|key=foo\
+    #|bar ; comment
+    #|key2=abc\
+    #|\# not a comment
+    #|key3=1\
+    #|2\
+    #|3
+  let ini = parse!(input)
+  inspect!(ini.get(section="multi", "key"), content="Some(\"foo\\nbar\")")
+  inspect!(
+    ini.get(section="multi", "key2"),
+    content="Some(\"abc\\n# not a comment\")",
+  )
+  inspect!(ini.get(section="multi", "key3"), content="Some(\"1\\n2\\n3\")")
+}
+
+///|
+test "parse/line_continuation_escape_and_quote" {
+  let input =
+    #|[multi]
+    #|key='foo\
+    #|bar'
+    #|key2="abc\
+    #|def"
+  let ini = parse!(input)
+  inspect!(ini.get(section="multi", "key"), content="Some(\"foo\\nbar\")")
+  inspect!(ini.get(section="multi", "key2"), content="Some(\"abc\\ndef\")")
+}
