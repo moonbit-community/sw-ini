@@ -11,6 +11,7 @@ impl IniFile {
   get_string(Self, section~ : String = .., String) -> String?
   new(is_case_sensitive~ : Bool = ..) -> Self
   set(Self, section~ : String = .., String, String) -> Unit
+  to_string(Self) -> String
 }
 
 pub type! IniParseError {

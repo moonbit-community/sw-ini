@@ -133,6 +133,92 @@ pub fn IniFile::set(
   section_map.set(self.lower_if_needed(key), Value(value))
 }
 
+///| Converts the IniFile to a standard INI format string
+pub fn IniFile::to_string(self : IniFile) -> String {
+  fn escape_char(c : Char) -> String {
+    match c {
+      '\\' => "\\\\"
+      '\'' => "\\\'"
+      '"' => "\\\""
+      '\u0000' => "\\0"
+      '\u0007' => "\\a"
+      '\b' => "\\b"
+      '\t' => "\\t"
+      '\r' => "\\r"
+      '\n' => "\\n"
+      ';' => "\\;"
+      '#' => "\\#"
+      '=' => "\\="
+      ':' => "\\:"
+      _ if c.is_control() || c.is_whitespace() || not(c.is_printable()) => {
+        let unicode = c.to_int().to_string(radix=16)
+        guard unicode.length() <= 4 else {
+          abort("Unicode escape sequence too long")
+        }
+        return if unicode.length() < 4 {
+          let padding = "0".repeat(4 - unicode.length())
+          "\\x" + padding + unicode
+        } else {
+          "\\x" + unicode
+        }
+      }
+      _ => c.to_string()
+    }
+  }
+
+  fn escape_value(value : String) -> String {
+    let str_list = value.iter().collect().map(escape_char)
+    let builder = StringBuilder::new()
+    str_list.each(fn(c) { builder.write_string(c) })
+    builder.to_string()
+  }
+
+  let buf = StringBuilder::new()
+  // Global section first
+  let global_section = self.sections.get(Section::Global)
+  if not(global_section.is_empty()) {
+    global_section
+    .unwrap()
+    .iter()
+    .each(fn(kv) {
+      let (key, value) = kv
+      let Key(key) = key
+      let Value(value) = value
+      buf.write_string(key)
+      buf.write_char('=')
+      buf.write_string(escape_value(value))
+      buf.write_char('\n')
+    })
+  }
+  // Other sections
+  self.sections
+  .iter()
+  .each(fn(section) {
+    let (section, map) = section
+    match section {
+      Section::Global => return
+      Section::NamedSection(name) => {
+        buf.write_char('[')
+        buf.write_string(name)
+        buf.write_char(']')
+        buf.write_char('\n')
+        map
+        .iter()
+        .each(fn(kv) {
+          let (key, value) = kv
+          let Key(key) = key
+          let Value(value) = value
+          buf.write_string(key)
+          buf.write_char('=')
+          buf.write_string(escape_value(value))
+          buf.write_char('\n')
+        })
+      }
+    }
+  })
+  buf.to_string()
+}
+
 ///|
 test "INIFile::new/default_case_sensitivity" {
   let ini = IniFile::new()
@@ -245,4 +331,52 @@ test "INIFile::set/overwrite" {
   ..set(section="section", "key", "value1")
   .set(section="section", "key", "value2")
   inspect!(ini.get(section="section", "key"), content="Some(\"value2\")")
+}
+
+///|
+/// Test IniFile::to_string covers escaping special characters in key and value.
+/// This test ensures that keys and values containing special INI characters
+/// (such as '=', ';', '#', '\n', quotes, and leading/trailing spaces) are correctly output.
+test "INIFile::to_string/escape_special_characters" {
+  let kvs = [
+    ("key1", "\\value1"),
+    ("key2", "value2\'"),
+    ("key3", "value3\""),
+    ("key4", "value4\n"),
+    ("key5", "value5\r"),
+    ("key6", "value6\t"),
+    ("key7", "value7;"),
+    ("key8", "value8#"),
+    ("key9", "value9:"),
+    ("key10", "value10="),
+    ("key11", "value11 \t"),
+    ("key12", " value12"),
+    ("key13", "\u0000"),
+    ("key14", "\u0007"),
+  ]
+  let sections = [
+    // "" => Section::Global
+    "", "sec1=", "k", "v",
+  ]
+  let ini1 = IniFile::new()
+  kvs
+  .iter()
+  .each(fn(kv) {
+    let (key, value) = kv
+    sections.iter().each(fn(section) { ini1.set(section~, key, value) })
+  })
+  let output = ini1.to_string()
+  let ini2 = parse!(output)
+  kvs
+  .iter()
+  .each(fn(kv) {
+    let (key, _) = kv
+    sections
+    .iter()
+    .each(fn(section) {
+      let ini1_value = ini1.get(section~, key)
+      let ini2_value = ini2.get(section~, key)
+      inspect?(ini1_value == ini2_value, content="true").unwrap()
+    })
+  })
 }

@@ -1,4 +1,4 @@
 - [x] Quoted values
 - [x] Line continuation, aka. as multiple lines
 - [x] Escape characters
-- [ ] Write INI file
+- [x] Write INI file
