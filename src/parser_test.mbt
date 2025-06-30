@@ -106,15 +106,18 @@ test "parse/multiple_chunks" {
 ///|
 test "parse/error_unclosed_section" {
   let input = "[section"
-  assert_true(parse?(input) is Err(_))
+  let res = try { let _  = parse(input); true } catch { _ => false }
+  assert_true(res)
 }
 
 ///|
 test "parse/error_unexpected_equal" {
   let input = "=value"
-  assert_true(parse?(input) is Err(_))
+  let res = try { let _  = parse(input); true } catch { _ => false }
+  assert_true(res)
   let input = "[section]\n=value"
-  assert_true(parse?(input) is Err(_))
+  let res = try { let _  = parse(input); true } catch { _ => false }
+  assert_true(res)
 }
 
 ///|
@@ -128,7 +131,8 @@ test "parse/error_value_without_section_or_key" {
   // This case is tricky because the parser might interpret 'value' as a key
   // Let's test assignment without a preceding key
   let input = "[section]\n=value"
-  assert_true(parse?(input) is Err(_))
+  let res = try { let _  = parse(input); true } catch { _ => false }
+  assert_true(res)
   // The ValueWithoutSection error is harder to trigger directly with current logic,
   // as '=' is required to start reading a value, which implies a key was being read.
   // It might occur internally if state management had a bug.
@@ -137,17 +141,21 @@ test "parse/error_value_without_section_or_key" {
 ///|
 test "parse/error_quote_mismatch" {
   let input = "[section]\nkey='value\""
-  assert_true(parse?(input) is Err(_))
+  let res = try { let _  = parse(input); true } catch { _ => false }
+  assert_true(res)
   let input = "[section]\nkey=\"value'\""
-  assert_true(parse?(input) is Err(_))
+  let res = try { let _  = parse(input); true } catch { _ => false }
+  assert_true(res)
 }
 
 ///|
 test "parse/error_quote_not_closed" {
   let input = "[section]\nkey='value"
-  assert_true(parse?(input) is Err(_))
+  let res = try { let _  = parse(input); true } catch { _ => false }
+  assert_true(res)
   let input = "[section]\nkey=\"value"
-  assert_true(parse?(input) is Err(_))
+  let res = try { let _  = parse(input); true } catch { _ => false }
+  assert_true(res)
 }
 
 ///|
