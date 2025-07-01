@@ -490,8 +490,7 @@ test "IniParseState::process_char/global_section_edge_cases" {
   inspect(tmp.phase, content="Start")
   inspect(tmp.ctx.current_section, content="NamedSection(\"g\")")
   inspect(state.process_char('[').phase, content="ReadingSection")
-  let res = try{let _  = tmp.process_char('#'); true } catch { _ => false }
-  assert_true(res)
+  assert_true((try? tmp.process_char('#')).is_err())
 }
 
 ///|
@@ -549,12 +548,10 @@ test "IniParseState::handle_section_char/unclosed_section" {
   }
 
   // Test both comment characters
-  let res = try {let _  = new_state().handle_section_char('#'); true } catch { _ => false }
-  assert_true(res)
+  assert_true((try? new_state().handle_section_char('#')).is_err())
 
   // Test newline
-  let res = try {let _  = new_state().handle_section_char('\n'); true } catch { _ => false }
-  assert_true(res)
+  assert_true((try? new_state().handle_section_char('\n')).is_err())
 }
 
 ///|
