@@ -5,10 +5,10 @@ priv enum Section {
 } derive(Eq, Hash, Show)
 
 ///|
-priv struct Key(String) derive(Eq, Hash, Show)
+priv struct Key(String) derive(Eq, Hash)
 
 ///|
-priv struct Value(String) derive(Eq, Hash, Show)
+priv struct Value(String) derive(Show)
 
 ///|
 struct IniFile {
@@ -239,9 +239,12 @@ test "INIFile::new/case_sensitive_false" {
 
 ///|
 test "INIFile::get/basic_functionality" {
-  let ini = IniFile::new()
-    ..set(section="section1", "key1", "value1")
-    ..set("key2", "value2")
+  let ini = {
+    let temp = IniFile::new()
+    temp.set(section="section1", "key1", "value1")
+    temp.set("key2", "value2")
+    temp
+  }
   inspect(ini.get(section="section1", "key1"), content="Some(\"value1\")")
   inspect(ini.get("key2"), content="Some(\"value2\")")
   inspect(ini.get(section="nonexistent", "key1"), content="None")
@@ -250,11 +253,11 @@ test "INIFile::get/basic_functionality" {
 
 ///|
 test "INIFile::get/case_sensitivity" {
-  let ini = IniFile::new(is_case_sensitive=true)..set(
-    section="Section",
-    "Key",
-    "value",
-  )
+  let ini = {
+    let temp = IniFile::new(is_case_sensitive=true)
+    temp..set(section="Section", "Key", "value")
+    temp
+  }
   inspect(ini.get(section="Section", "Key"), content="Some(\"value\")")
   inspect(ini.get(section="section", "Key"), content="None")
   inspect(ini.get(section="Section", "key"), content="None")
@@ -262,22 +265,28 @@ test "INIFile::get/case_sensitivity" {
 
 ///|
 test "INIFile::get/empty_strings" {
-  let ini = IniFile::new()
-    ..set(section="", "key", "value")
-    ..set(section="section", "", "value")
+  let ini = {
+    let temp = IniFile::new()
+    temp..set(section="", "key", "value")
+    temp..set(section="section", "", "value")
+    temp
+  }
   inspect(ini.get(section="", "key"), content="Some(\"value\")")
   inspect(ini.get(section="section", ""), content="Some(\"value\")")
 }
 
 ///|
 test "INIFile::get_bool/true_values" {
-  let ini = IniFile::new()
-    ..set("key1", "true")
-    ..set("key2", "yes")
-    ..set("key3", "on")
-    ..set(section="test", "key4", "TRUE")
-    ..set(section="test", "key5", "Yes")
-    ..set(section="test", "key6", "ON")
+  let ini = {
+    let obj = IniFile::new()
+    obj..set("key1", "true")
+    obj..set("key2", "yes")
+    obj..set("key3", "on")
+    obj..set(section="test", "key4", "TRUE")
+    obj..set(section="test", "key5", "Yes")
+    obj..set(section="test", "key6", "ON")
+    obj
+  }
   inspect(ini.get_bool("key1"), content="Some(true)")
   inspect(ini.get_bool("key2"), content="Some(true)")
   inspect(ini.get_bool("key3"), content="Some(true)")
@@ -288,11 +297,14 @@ test "INIFile::get_bool/true_values" {
 
 ///|
 test "INIFile::get_bool/false_values" {
-  let ini = IniFile::new()
-    ..set("key1", "false")
-    ..set("key2", "no")
-    ..set("key3", "off")
-    ..set("key4", "invalid")
+  let ini = {
+    let ini = IniFile::new()
+    ini.set("key1", "false")
+    ini.set("key2", "no")
+    ini.set("key3", "off")
+    ini.set("key4", "invalid")
+    ini
+  }
   inspect(ini.get_bool("key1"), content="Some(false)")
   inspect(ini.get_bool("key2"), content="Some(false)")
   inspect(ini.get_bool("key3"), content="Some(false)")
@@ -308,7 +320,11 @@ test "INIFile::get_bool/nonexistent_values" {
 
 ///|
 test "INIFile::set/basic_functionality" {
-  let ini = IniFile::new()..set("key", "value")
+  let ini = {
+    let ini = IniFile::new()
+    ini.set("key", "value")
+    ini
+  }
   inspect(ini.get("key"), content="Some(\"value\")")
   ini.set(section="section", "key", "value")
   inspect(ini.get(section="section", "key"), content="Some(\"value\")")
@@ -316,16 +332,24 @@ test "INIFile::set/basic_functionality" {
 
 ///|
 test "INIFile::set/case_sensitivity" {
-  let ini = IniFile::new(is_case_sensitive=true)
-    ..set(section="Section", "Key", "value1")
-    ..set(section="section", "key", "value2")
+  let ini = {
+    let ini = IniFile::new(is_case_sensitive=true)
+    ini.set(section="Section", "Key", "value1")
+    ini.set(section="section", "key", "value2")
+    ini
+  }
   inspect(ini.get(section="Section", "Key"), content="Some(\"value1\")")
   inspect(ini.get(section="section", "key"), content="Some(\"value2\")")
 }
 
 ///|
 test "INIFile::set/overwrite" {
-  let ini = IniFile::new()..set("key", "value1")..set("key", "value2")
+  let ini = {
+    let temp = IniFile::new()
+    temp.set("key", "value1")
+    temp.set("key", "value2")
+    temp
+  }
   inspect(ini.get("key"), content="Some(\"value2\")")
   ini
   ..set(section="section", "key", "value1")
@@ -376,7 +400,7 @@ test "INIFile::to_string/escape_special_characters" {
     .each(fn(section) {
       let ini1_value = ini1.get(section~, key)
       let ini2_value = ini2.get(section~, key)
-      inspect?(ini1_value == ini2_value, content="true").unwrap()
+      inspect(ini1_value == ini2_value, content="true")
     })
   })
 }
