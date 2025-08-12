@@ -1,20 +1,11 @@
+// Generated using `moon info`, DON'T EDIT IT
 package "ShellWen/sw_ini"
 
 // Values
-fn parse(String, is_case_sensitive~ : Bool = ..) -> IniFile!IniParseError
+fn parse(String, is_case_sensitive? : Bool) -> IniFile raise IniParseError
 
-// Types and methods
-type IniFile
-impl IniFile {
-  get(Self, section~ : String = .., String) -> String?
-  get_bool(Self, section~ : String = .., String) -> Bool?
-  get_string(Self, section~ : String = .., String) -> String?
-  new(is_case_sensitive~ : Bool = ..) -> Self
-  set(Self, section~ : String = .., String, String) -> Unit
-  to_string(Self) -> String
-}
-
-pub type! IniParseError {
+// Errors
+pub suberror IniParseError {
   UnexpectedEqualSign(line~ : Int, col~ : Int)
   EmptySection(line~ : Int, col~ : Int)
   UnclosedSection(line~ : Int, col~ : Int)
@@ -23,12 +14,19 @@ pub type! IniParseError {
   QuoteNotClosed(line~ : Int, col~ : Int)
 }
 
+// Types and methods
+type IniFile
+fn IniFile::get(Self, section? : String, String) -> String?
+fn IniFile::get_bool(Self, section? : String, String) -> Bool?
+fn IniFile::get_string(Self, section? : String, String) -> String?
+fn IniFile::new(is_case_sensitive? : Bool) -> Self
+fn IniFile::set(Self, section? : String, String, String) -> Unit
+fn IniFile::to_string(Self) -> String
+
 type IniParseState
-impl IniParseState {
-  finish(Self) -> IniFile!IniParseError
-  new(is_case_sensitive~ : Bool = ..) -> Self
-  parse(Self, String) -> Self!IniParseError
-}
+fn IniParseState::finish(Self) -> IniFile raise IniParseError
+fn IniParseState::new(is_case_sensitive? : Bool) -> Self
+fn IniParseState::parse(Self, String) -> Self raise IniParseError
 
 // Type aliases
 
