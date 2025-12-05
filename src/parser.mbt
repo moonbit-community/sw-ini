@@ -11,7 +11,7 @@ pub suberror IniParseError {
 ///|
 priv struct ParseContext {
   mut current_section : Section
-  sections : @hashmap.T[Section, @hashmap.T[Key, Value]]
+  sections : @hashmap.HashMap[Section, @hashmap.HashMap[Key, Value]]
   mut line : Int
   mut col : Int
   mut key : String
@@ -66,7 +66,7 @@ fn IniParseState::lower_if_needed(self : IniParseState, s : String) -> String {
 }
 
 ///|
-pub fn IniParseState::new(is_case_sensitive~ : Bool = false) -> IniParseState {
+pub fn IniParseState::new(is_case_sensitive? : Bool = false) -> IniParseState {
   IniParseState::{
     ctx: ParseContext::{
       current_section: Section::Global,
@@ -86,7 +86,7 @@ pub fn IniParseState::new(is_case_sensitive~ : Bool = false) -> IniParseState {
 ///|
 pub fn parse(
   str : String,
-  is_case_sensitive~ : Bool = false,
+  is_case_sensitive? : Bool = false,
 ) -> IniFile raise IniParseError {
   IniParseState::new(is_case_sensitive~).parse(str).finish()
 }
@@ -405,11 +405,18 @@ fn IniParseState::commit_value(
   self : IniParseState,
   // If true, drop the last space in the value
   // this is used to handle the case when a comment is at the end of the line
-  drop_last_one_space~ : Bool = false,
+  drop_last_one_space? : Bool = false,
 ) -> IniParseState raise IniParseError {
   let mut value = self.ctx.buffer.to_string()
   if drop_last_one_space && value.rev_iter().nth(0).unwrap().is_whitespace() {
-    value = value.substring(end=value.length() - 1)
+    let len = value.length()
+    if len > 0 {
+      try {
+        value = value[:len - 1].to_string()
+      } catch {
+        _ => ()
+      }
+    }
   }
   let section = self.ctx.sections.get(self.ctx.current_section).unwrap()
   let key = self.ctx.key
@@ -500,7 +507,7 @@ test "IniParseState::process_char/global_section_edge_cases" {
 }
 
 ///|
-test "panic IniParseState::process_char/unclosed_section" {
+test "panic IniParseState::process_char/unclosed_section_newline" {
   let state = IniParseState::new()
   ignore(state.process_char('['))
   ignore(state.process_char('\n'))
@@ -649,7 +656,7 @@ test "IniParseState::handle_key_char/valueless_key" {
   inspect(state.ctx.key, content="key")
   inspect(state.phase, content="Start")
   let section = state.ctx.sections.get(state.ctx.current_section)
-  inspect(section.is_empty(), content="false")
+  inspect(section is Some(_), content="true")
   let value = section.unwrap().get("key")
   inspect(value, content="Some(Value(\"\"))")
 }
@@ -732,10 +739,10 @@ test "IniParseState::commit_value/basic" {
   inspect(state.ctx.buffer.is_empty(), content="true")
   // Verify the section exists
   let section = state.ctx.sections.get(Section::NamedSection("section"))
-  inspect(section.is_empty(), content="false")
+  inspect(section is Some(_), content="true")
   // Verify the key exists in the section
   let value = section.unwrap().get("key")
-  inspect(value.is_empty(), content="false")
+  inspect(value is Some(_), content="true")
 }
 
 ///|
@@ -752,8 +759,8 @@ test "IniParseState::commit_value/empty_value" {
   let state = state.commit_value()
   // Verify the section exists
   let section = state.ctx.sections.get(Section::NamedSection("section"))
-  inspect(section.is_empty(), content="false")
+  inspect(section is Some(_), content="true")
   // Verify the key exists in the section with empty value
   let value = section.unwrap().get("key")
-  inspect(value.is_empty(), content="false")
+  inspect(value is Some(_), content="true")
 }

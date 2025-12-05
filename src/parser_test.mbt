@@ -128,9 +128,10 @@ test "parse/error_value_without_section_or_key" {
   // This case is tricky because the parser might interpret 'value' as a key
   // Let's test assignment without a preceding key
   let input = "[section]\n=value"
-  match (try? parse(input)) {
-    Ok(_) => assert_true(false)
-    Err(_) => assert_true(true)
+  try parse(input) catch {
+    _ => assert_true(true)
+  } noraise {
+    _ => assert_true(false)
   }
   // The ValueWithoutSection error is harder to trigger directly with current logic,
   // as '=' is required to start reading a value, which implies a key was being read.
