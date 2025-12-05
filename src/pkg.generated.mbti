@@ -1,0 +1,34 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "ShellWen/sw_ini"
+
+// Values
+pub fn parse(String, is_case_sensitive? : Bool) -> IniFile raise IniParseError
+
+// Errors
+pub suberror IniParseError {
+  UnexpectedEqualSign(line~ : Int, col~ : Int)
+  EmptySection(line~ : Int, col~ : Int)
+  UnclosedSection(line~ : Int, col~ : Int)
+  ValueWithoutSection(line~ : Int, col~ : Int)
+  QuoteMismatch(line~ : Int, col~ : Int)
+  QuoteNotClosed(line~ : Int, col~ : Int)
+}
+
+// Types and methods
+type IniFile
+pub fn IniFile::get(Self, section? : String, String) -> String?
+pub fn IniFile::get_bool(Self, section? : String, String) -> Bool?
+pub fn IniFile::get_string(Self, section? : String, String) -> String?
+pub fn IniFile::new(is_case_sensitive? : Bool) -> Self
+pub fn IniFile::set(Self, section? : String, String, String) -> Unit
+pub fn IniFile::to_string(Self) -> String
+
+type IniParseState
+pub fn IniParseState::finish(Self) -> IniFile raise IniParseError
+pub fn IniParseState::new(is_case_sensitive? : Bool) -> Self
+pub fn IniParseState::parse(Self, String) -> Self raise IniParseError
+
+// Type aliases
+
+// Traits
+
