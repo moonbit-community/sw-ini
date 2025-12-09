@@ -408,15 +408,8 @@ fn IniParseState::commit_value(
   drop_last_one_space? : Bool = false,
 ) -> IniParseState raise IniParseError {
   let mut value = self.ctx.buffer.to_string()
-  if drop_last_one_space && value.rev_iter().nth(0).unwrap().is_whitespace() {
-    let len = value.length()
-    if len > 0 {
-      try {
-        value = value[:len - 1].to_string()
-      } catch {
-        _ => ()
-      }
-    }
+  if drop_last_one_space && value is [.. rest, ch] && ch.is_whitespace() {
+    value = rest.to_string()
   }
   let section = self.ctx.sections.get(self.ctx.current_section).unwrap()
   let key = self.ctx.key
