@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "ShellWen/sw_ini"
+package "moonbit-community/ini"
 
 // Values
 pub fn parse(String, is_case_sensitive? : Bool) -> IniFile raise IniParseError
