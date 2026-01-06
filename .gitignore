@@ -1,4 +1,4 @@
-target/
-_build/
+target
+_build
 .mooncakes/
 .DS_Store
