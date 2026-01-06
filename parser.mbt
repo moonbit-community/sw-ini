@@ -181,7 +181,7 @@ fn IniParseState::handle_section_char(
       if self.ctx.buffer.is_empty() {
         raise IniParseError::EmptySection(line=self.ctx.line, col=self.ctx.col)
       }
-      let section_name = self.ctx.buffer.to_string().trim_space()
+      let section_name = self.ctx.buffer.to_string().trim()
       let section_name = self.lower_if_needed(section_name.to_string())
       self.ctx.current_section = Section::NamedSection(section_name)
       if not(self.ctx.sections.contains(self.ctx.current_section)) {
@@ -212,7 +212,7 @@ fn IniParseState::handle_key_char(
           col=self.ctx.col,
         )
       }
-      let key = self.ctx.buffer.to_string().trim_space()
+      let key = self.ctx.buffer.to_string().trim()
       let key = self.lower_if_needed(key.to_string())
       self.ctx.buffer.reset()
       self.phase = ReadingValue(ReadingValueState::None)
@@ -220,7 +220,7 @@ fn IniParseState::handle_key_char(
       self
     }
     '\n' | ';' | '#' => {
-      let key = self.ctx.buffer.to_string().trim_space()
+      let key = self.ctx.buffer.to_string().trim()
       if not(key.is_empty()) {
         let key = self.lower_if_needed(key.to_string())
         self.ctx.key = key
