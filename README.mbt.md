@@ -52,38 +52,44 @@ max_connections=100
 
 The simplest way to use `ini` is with the `parse` function:
 
-```mbt test
-let config_str =
-  #|[server]
-  #|host=localhost
-  #|port=3000
-let ini = @ini.parse(config_str)
-let host = ini.get(section="server", "host").unwrap()
-inspect(host, content="localhost")
+```mbt check
+///|
+test {
+  let config_str =
+    #|[server]
+    #|host=localhost
+    #|port=3000
+  let ini = @ini.parse(config_str)
+  let host = ini.get(section="server", "host").unwrap()
+  inspect(host, content="localhost")
+}
 ```
 
 ### **⚙️ Configuration Options**
 
 ini offers configuration options when parsing:
 
-```mbt test
-let content =
-  #|[server]
-  #|host=localhost
-  #|port=3000
-  #|[Server]
-  #|host=remote
+```mbt check
+///|
+test {
+  let content =
+    #|[server]
+    #|host=localhost
+    #|port=3000
+    #|[Server]
+    #|host=remote
 
-// Case-sensitive parsing
+  // Case-sensitive parsing
 
-let ini = @ini.parse(content, is_case_sensitive=true)
-inspect(ini.get(section="server", "host").unwrap(), content="localhost")
-inspect(ini.get(section="Server", "host").unwrap(), content="remote")
+  let ini = @ini.parse(content, is_case_sensitive=true)
+  inspect(ini.get(section="server", "host").unwrap(), content="localhost")
+  inspect(ini.get(section="Server", "host").unwrap(), content="remote")
 
-// Create an empty INI file object
+  // Create an empty INI file object
 
-let ini = @ini.IniFile::new(is_case_sensitive=true)
-ignore(ini)
+  let ini = @ini.IniFile::new(is_case_sensitive=true)
+  ignore(ini)
+}
 ```
 
 ---
@@ -92,23 +98,26 @@ ignore(ini)
 
 After parsing, you can access values using various methods:
 
-```mbt test
-let content =
-  #|[server]
-  #|host=localhost
-  #|port=3000
-  #|[feature]
-  #|foo=true
-let ini = @ini.parse(content)
-let host = ini.get(section="server", "host")
-inspect(
-  host,
-  content=(
-    #|Some("localhost")
-  ),
-)
-let foo_enabled = ini.get_bool(section="feature", "foo")
-inspect(foo_enabled, content="Some(true)")
+```mbt check
+///|
+test {
+  let content =
+    #|[server]
+    #|host=localhost
+    #|port=3000
+    #|[feature]
+    #|foo=true
+  let ini = @ini.parse(content)
+  let host = ini.get(section="server", "host")
+  inspect(
+    host,
+    content=(
+      #|Some("localhost")
+    ),
+  )
+  let foo_enabled = ini.get_bool(section="feature", "foo")
+  inspect(foo_enabled, content="Some(true)")
+}
 ```
 
 ---
@@ -116,24 +125,34 @@ inspect(foo_enabled, content="Some(true)")
 
 ### **🛠️ Full Example**
 
-```mbt test
-let content =
-  #|[server]
-  #|host=localhost
-  #|port=3000
-  #|enabled=true
-  #|
-  #|[database]
-  #|url=mysql://localhost/db
+```mbt check
+///|
+test {
+  let content =
+    #|[server]
+    #|host=localhost
+    #|port=3000
+    #|enabled=true
+    #|
+    #|[database]
+    #|url=mysql://localhost/db
 
-// Parse INI content
-let ini = @ini.parse(content)
+  // Parse INI content
+  let ini = @ini.parse(content)
 
-// Access various values
-let host = ini.get(section="server", "host").unwrap()
-let port = ini.get(section="server", "port").unwrap_or("8080")
-let enabled = ini.get_bool(section="server", "enabled").unwrap()
-inspect(if enabled { "\{host}:\{port}" } else { "" }, content="localhost:3000")
+  // Access various values
+  let host = ini.get(section="server", "host").unwrap()
+  let port = ini.get(section="server", "port").unwrap_or("8080")
+  let enabled = ini.get_bool(section="server", "enabled").unwrap()
+  inspect(
+    if enabled {
+      "\{host}:\{port}"
+    } else {
+      ""
+    },
+    content="localhost:3000",
+  )
+}
 ```
 
 ## 📜 License
